@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useContractRead } from 'wagmi'
 
-import wagmigotchiAbi from './wagmigotchi-abi.json'
+import { wagmigotchiAbi } from './wagmigotchi-abi'
 
 const wagmigotchiContractConfig = {
   addressOrName: '0xecb504d39723b0be0e3a9aa33d646642d1051ee1',
@@ -26,7 +26,35 @@ export const ReadContract = () => {
 const GetAlive = () => {
   const { data, isRefetching, isSuccess, refetch } = useContractRead({
     ...wagmigotchiContractConfig,
-    functionName: 'getAlive',
+    contractInterface: [
+      {
+        type: 'function',
+        name: 'foo',
+        inputs: [
+          { type: 'address', name: 'merp' },
+          { type: 'bool[2]', name: 'meep' },
+        ],
+        outputs: [],
+        stateMutability: 'view',
+      },
+      {
+        type: 'function',
+        name: 'bar',
+        inputs: [],
+        outputs: [],
+        stateMutability: 'view',
+      },
+      {
+        type: 'function',
+        name: 'boo',
+        inputs: [{ type: 'address', name: 'address' }],
+        outputs: [],
+        stateMutability: 'view',
+      },
+    ] as const,
+    functionName: 'boo',
+    // args: ['0xA0Cf798816D4b9b9866b5330EEa46a18382f251e', [true, true]],
+    args: '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e',
   })
 
   return (

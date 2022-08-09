@@ -17,8 +17,34 @@ describe('readContract', () => {
       expect(
         await readContract({
           ...wagmigotchiContractConfig,
-          functionName: 'love',
-          args: '0x27a69ffba1e939ddcfecc8c7e0f967b872bac65c',
+          contractInterface: [
+            {
+              type: 'function',
+              name: 'foo',
+              inputs: [
+                { type: 'address', name: 'merp' },
+                { type: 'bool[2]', name: 'meep' },
+              ],
+              outputs: [],
+              stateMutability: 'view',
+            },
+            {
+              type: 'function',
+              name: 'bar',
+              inputs: [],
+              outputs: [],
+              stateMutability: 'view',
+            },
+            {
+              type: 'function',
+              name: 'boo',
+              inputs: [{ type: 'address', name: 'address' }],
+              outputs: [],
+              stateMutability: 'view',
+            },
+          ] as const,
+          functionName: 'boo',
+          args: '0Cf798816D4b9b9866b5330EEa46a18382f251e',
           chainId: 1,
         }),
       ).toMatchInlineSnapshot(`
