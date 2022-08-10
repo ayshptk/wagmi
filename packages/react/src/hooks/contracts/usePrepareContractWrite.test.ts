@@ -1,3 +1,10 @@
+import {
+  Abi,
+  AbiParametersToPrimitiveTypes,
+  ExtractAbiFunctionNames,
+  ExtractAbiFunctionParameters,
+} from 'abitype'
+import { Signer } from 'ethers'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -8,14 +15,18 @@ import {
 } from '../../../test'
 import { useConnect } from '../accounts'
 import {
-  UsePrepareContractWriteArgs,
   UsePrepareContractWriteConfig,
   usePrepareContractWrite,
 } from './usePrepareContractWrite'
 
-function usePrepareContractWriteWithConnect(
-  config: UsePrepareContractWriteArgs & UsePrepareContractWriteConfig,
-) {
+function usePrepareContractWriteWithConnect<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TSigner extends Signer = Signer,
+>(config: UsePrepareContractWriteConfig<TAbi, TFunctionName, TArgs, TSigner>) {
   const { ...prepareContractTransaction } = usePrepareContractWrite(config)
   return {
     connect: useConnect(),
@@ -181,6 +192,7 @@ describe('usePrepareContractWrite', () => {
       const utils = renderHook(() =>
         usePrepareContractWriteWithConnect({
           ...wagmiContractConfig,
+          // @ts-expect-error function name does not exist
           functionName: 'wagmi',
         }),
       )
@@ -226,6 +238,153 @@ describe('usePrepareContractWrite', () => {
           "status": "error",
         }
       `)
+    })
+  })
+
+  describe('types', () => {
+    describe('args', () => {
+      it('zero', () => {
+        renderHook(() =>
+          usePrepareContractWrite({
+            addressOrName: '0x0000000000000000000000000000000000000000',
+            contractInterface: [
+              {
+                type: 'function',
+                name: 'foo',
+                stateMutability: 'payable',
+                inputs: [],
+                outputs: [{ name: '', type: 'string' }],
+              },
+            ] as const,
+            functionName: 'foo',
+          }),
+        )
+      })
+
+      it('one', () => {
+        renderHook(() =>
+          usePrepareContractWrite({
+            addressOrName: '0x0000000000000000000000000000000000000000',
+            contractInterface: [
+              {
+                type: 'function',
+                name: 'foo',
+                stateMutability: 'payable',
+                inputs: [
+                  {
+                    name: '',
+                    type: 'tuple',
+                    components: [{ name: 'bar', type: 'string' }],
+                  },
+                ],
+                outputs: [
+                  {
+                    name: '',
+                    type: 'tuple',
+                    components: [{ name: 'bar', type: 'string' }],
+                  },
+                ],
+              },
+            ] as const,
+            functionName: 'foo',
+            args: {
+              bar: 'hello',
+            },
+          }),
+        )
+      })
+
+      it('two or more', () => {
+        renderHook(() =>
+          usePrepareContractWrite({
+            addressOrName: '0x0000000000000000000000000000000000000000',
+            contractInterface: [
+              {
+                type: 'function',
+                name: 'foo',
+                stateMutability: 'payable',
+                inputs: [
+                  {
+                    name: 'address',
+                    type: 'address',
+                  },
+                  {
+                    name: 'tokenIds',
+                    type: 'int[3]',
+                  },
+                ],
+                outputs: [{ name: '', type: 'int' }],
+              },
+            ] as const,
+            functionName: 'foo',
+            args: ['0xA0Cf798816D4b9b9866b5330EEa46a18382f251e', [1, 2, 3]],
+          }),
+        )
+      })
+
+      it('wrong arg type', () => {
+        renderHook(() =>
+          usePrepareContractWrite({
+            addressOrName: '0x0000000000000000000000000000000000000000',
+            contractInterface: [
+              {
+                type: 'function',
+                name: 'foo',
+                stateMutability: 'payable',
+                inputs: [
+                  {
+                    name: 'owner',
+                    type: 'address',
+                  },
+                ],
+                outputs: [{ name: '', type: 'string' }],
+              },
+            ] as const,
+            functionName: 'foo',
+            // @ts-expect-error arg not in address format
+            args: 'notanaddress',
+          }),
+        )
+      })
+    })
+
+    describe('behavior', () => {
+      it('write function not allowed', () => {
+        renderHook(() =>
+          usePrepareContractWrite({
+            addressOrName: '0x0000000000000000000000000000000000000000',
+            contractInterface: [
+              {
+                type: 'function',
+                name: 'foo',
+                stateMutability: 'view',
+                inputs: [],
+                outputs: [{ name: '', type: 'string' }],
+              },
+            ],
+            // @ts-expect-error Trying to use non-read function
+            functionName: 'foo',
+          }),
+        )
+      })
+
+      it('mutable abi', () => {
+        renderHook(() =>
+          usePrepareContractWrite({
+            addressOrName: '0x0000000000000000000000000000000000000000',
+            contractInterface: [
+              {
+                type: 'function',
+                name: 'foo',
+                stateMutability: 'payable',
+                inputs: [],
+                outputs: [{ name: '', type: 'string' }],
+              },
+            ],
+            functionName: 'foo',
+          }),
+        )
+      })
     })
   })
 })

@@ -1,6 +1,12 @@
 import {
+  Abi,
+  AbiParametersToPrimitiveTypes,
+  ExtractAbiFunctionNames,
+  ExtractAbiFunctionParameters,
+} from 'abitype'
+import {
   CallOverrides,
-  Contract,
+  ContractInterface,
   PopulatedTransaction,
 } from 'ethers/lib/ethers'
 
@@ -10,31 +16,53 @@ import {
 } from '../../errors'
 import { Address, Signer } from '../../types'
 import { fetchSigner } from '../accounts'
-import { GetContractArgs, getContract } from './getContract'
+import { getContract } from './getContract'
 
-export type PrepareWriteContractConfig<TSigner extends Signer = Signer> = Omit<
-  GetContractArgs,
-  'signerOrProvider'
-> & {
+export type PrepareWriteContractConfig<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TSigner extends Signer = Signer,
+> = {
+  /** Contract address or ENS name */
+  addressOrName: string
   /** Chain ID used to validate if the signer is connected to the target chain */
   chainId?: number
+  /** Contract ABI */
+  contractInterface: TAbi
   /** Method to call on contract */
-  functionName: string
-  /** Arguments to pass contract method */
-  args?: any | any[]
+  functionName: TFunctionName
   overrides?: CallOverrides
   signer?: TSigner | null
-}
-
-export type PrepareWriteContractResult<TSigner extends Signer = Signer> =
-  PrepareWriteContractConfig<TSigner> & {
-    chainId?: number
-    request: PopulatedTransaction & {
-      to: Address
-      gasLimit: NonNullable<PopulatedTransaction['gasLimit']>
+} & (TArgs['length'] extends 0
+  ? {
+      // Add optional `args` param if not able to infer `TArgs`
+      // e.g. not using const assertion for `contractInterface`
+      // Otherwise remove from config object
+      args?: [TArgs] extends [never] ? any | undefined : never
     }
-    mode: 'prepared'
+  : {
+      /** Arguments to pass contract method */
+      args: TArgs['length'] extends 1 ? TArgs[0] : TArgs
+    })
+
+export type PrepareWriteContractResult<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TSigner extends Signer = Signer,
+> = PrepareWriteContractConfig<TAbi, TFunctionName, TArgs, TSigner> & {
+  chainId?: number
+  request: PopulatedTransaction & {
+    to: Address
+    gasLimit: NonNullable<PopulatedTransaction['gasLimit']>
   }
+  mode: 'prepared'
+}
 
 /**
  * @description Prepares the parameters required for a contract write transaction.
@@ -52,7 +80,11 @@ export type PrepareWriteContractResult<TSigner extends Signer = Signer> =
  * const result = await writeContract(config)
  */
 export async function prepareWriteContract<
-  TContract extends Contract = Contract,
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
   TSigner extends Signer = Signer,
 >({
   addressOrName,
@@ -62,13 +94,15 @@ export async function prepareWriteContract<
   functionName,
   overrides,
   signer: signer_,
-}: PrepareWriteContractConfig): Promise<PrepareWriteContractResult<TSigner>> {
+}: PrepareWriteContractConfig<TAbi, TFunctionName, TArgs, TSigner>): Promise<
+  PrepareWriteContractResult<TAbi, TFunctionName, TArgs, TSigner>
+> {
   const signer = signer_ ?? (await fetchSigner())
   if (!signer) throw new ConnectorNotFoundError()
 
-  const contract = getContract<TContract>({
+  const contract = getContract({
     addressOrName,
-    contractInterface,
+    contractInterface: <ContractInterface>(<unknown>contractInterface),
     signerOrProvider: signer,
   })
 
@@ -105,5 +139,5 @@ export async function prepareWriteContract<
       gasLimit,
     },
     mode: 'prepared',
-  }
+  } as PrepareWriteContractResult<TAbi, TFunctionName, TArgs, TSigner>
 }

@@ -2,38 +2,55 @@ import {
   FetchSignerResult,
   PrepareWriteContractConfig,
   PrepareWriteContractResult,
+  Signer,
   prepareWriteContract,
 } from '@wagmi/core'
-import { providers } from 'ethers'
-import { hashQueryKey } from 'react-query'
+import {
+  Abi,
+  AbiParametersToPrimitiveTypes,
+  ExtractAbiFunctionNames,
+  ExtractAbiFunctionParameters,
+} from 'abitype'
+import { QueryFunctionContext, hashQueryKey } from 'react-query'
 
-import { QueryConfig, QueryFunctionArgs } from '../../types'
+import { QueryConfig } from '../../types'
 import { useSigner } from '../accounts'
 import { useChainId, useQuery } from '../utils'
 
-export type UsePrepareContractWriteArgs = Omit<
-  PrepareWriteContractConfig,
-  'signerOrProvider'
->
-export type UsePrepareContractWriteConfig = QueryConfig<
-  PrepareWriteContractResult,
-  Error
->
+export type UsePrepareContractWriteConfig<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TSigner extends Signer = Signer,
+> = PrepareWriteContractConfig<TAbi, TFunctionName, TArgs, TSigner> &
+  QueryConfig<
+    PrepareWriteContractResult<TAbi, TFunctionName, TArgs, TSigner>,
+    Error
+  >
 
-export const queryKey = (
+function queryKey<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TSigner extends Signer = Signer,
+>(
   {
     args,
     addressOrName,
     contractInterface,
     functionName,
     overrides,
-  }: UsePrepareContractWriteArgs,
+  }: // Force `args` to any type so react-query can infer it's existence.
+  // This is fine because type-safety comes from the outer function signature.
+  // If we expose `queryKey` to users, we will want to add `TArgs` in.
+  PrepareWriteContractConfig<TAbi, TFunctionName, any | undefined, TSigner>,
   {
     chainId,
     signer,
-  }: { chainId?: number; signer?: FetchSignerResult<providers.JsonRpcSigner> },
-) =>
-  [
+  }: { chainId?: number; signer?: FetchSignerResult<TSigner> },
+) {
+  return [
     {
       entity: 'prepareContractTransaction',
       addressOrName,
@@ -45,29 +62,27 @@ export const queryKey = (
       signer,
     },
   ] as const
-
-const queryKeyHashFn = ([queryKey_]: ReturnType<typeof queryKey>) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { contractInterface, signer, ...rest } = queryKey_
-  return hashQueryKey([rest, signer?._address])
 }
 
-const queryFn =
-  ({ signer }: { signer?: FetchSignerResult }) =>
-  ({
-    queryKey: [
-      { args, addressOrName, contractInterface, functionName, overrides },
-    ],
-  }: QueryFunctionArgs<typeof queryKey>) => {
-    return prepareWriteContract({
-      args,
-      addressOrName,
-      contractInterface,
-      functionName,
-      overrides,
+function queryFn<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TSigner extends Signer = Signer,
+>({ signer }: { signer?: FetchSignerResult }) {
+  return async ({
+    queryKey,
+  }: QueryFunctionContext<
+    readonly [PrepareWriteContractConfig<TAbi, TFunctionName, TArgs, TSigner>]
+  >) => {
+    return await prepareWriteContract({
+      ...queryKey[0],
       signer,
     })
   }
+}
 
 /**
  * @description Hook for preparing a contract write to be sent via [`useContractWrite`](/docs/hooks/useContractWrite).
@@ -85,7 +100,14 @@ const queryFn =
  * const { data, isLoading, isSuccess, write } = useContractWrite(config)
  *
  */
-export function usePrepareContractWrite({
+export function usePrepareContractWrite<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TSigner extends Signer = Signer,
+>({
   addressOrName,
   contractInterface,
   functionName,
@@ -98,12 +120,12 @@ export function usePrepareContractWrite({
   onError,
   onSettled,
   onSuccess,
-}: UsePrepareContractWriteArgs & UsePrepareContractWriteConfig) {
+}: UsePrepareContractWriteConfig<TAbi, TFunctionName, TArgs, TSigner>) {
   const chainId = useChainId()
-  const { data: signer } = useSigner<providers.JsonRpcSigner>()
+  const { data: signer } = useSigner<TSigner>()
 
   const prepareContractWriteQuery = useQuery(
-    queryKey(
+    queryKey<TAbi, TFunctionName, TSigner>(
       {
         addressOrName,
         contractInterface,
@@ -113,11 +135,16 @@ export function usePrepareContractWrite({
       },
       { chainId, signer },
     ),
-    queryFn({ signer }),
+    queryFn<TAbi, TFunctionName, TArgs, TSigner>({ signer }),
     {
       cacheTime,
       enabled: Boolean(enabled && signer),
-      queryKeyHashFn,
+      queryKeyHashFn([
+        { contractInterface: _contractInterface, signer, ...rest },
+      ]) {
+        // @ts-expect-error accessing "private" `_address` property
+        return hashQueryKey([rest, signer?._address])
+      },
       staleTime,
       suspense,
       onError,
@@ -135,6 +162,6 @@ export function usePrepareContractWrite({
       request: undefined,
       mode: 'prepared',
       ...prepareContractWriteQuery.data,
-    } as PrepareWriteContractResult,
+    } as PrepareWriteContractResult<TAbi, TFunctionName, TArgs, TSigner>,
   })
 }

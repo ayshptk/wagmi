@@ -18,7 +18,7 @@ import { QueryConfig } from '../../types'
 import { useBlockNumber } from '../network-status'
 import { useChainId, useInvalidateOnBlock, useQuery } from '../utils'
 
-type UseContractReadConfig<
+export type UseContractReadConfig<
   TAbi extends Abi,
   TFunctionName extends ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>,
   TArgs extends AbiParametersToPrimitiveTypes<
@@ -37,16 +37,20 @@ type UseContractReadConfig<
 function queryKey<
   TAbi extends Abi,
   TFunctionName extends ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>,
->([
-  { addressOrName, args, chainId, contractInterface, functionName, overrides },
-  { blockNumber },
-]: [
-  // Force `args` to any type so react-query can infer it's existence.
+>(
+  {
+    addressOrName,
+    args,
+    chainId,
+    contractInterface,
+    functionName,
+    overrides,
+  }: // Force `args` to any type so react-query can infer it's existence.
   // This is fine because type-safety comes from the outer function signature.
   // If we expose `queryKey` to users, we will want to add `TArgs` in.
   ReadContractConfig<TAbi, TFunctionName, any | undefined>,
-  { blockNumber?: number },
-]) {
+  { blockNumber }: { blockNumber?: number },
+) {
   return [
     {
       entity: 'readContract',
@@ -114,7 +118,7 @@ export function useContractRead<
 
   const queryKey_ = React.useMemo(
     () =>
-      queryKey<TAbi, TFunctionName>([
+      queryKey<TAbi, TFunctionName>(
         {
           addressOrName,
           args,
@@ -124,7 +128,7 @@ export function useContractRead<
           overrides,
         },
         { blockNumber: cacheOnBlock ? blockNumber : undefined },
-      ]),
+      ),
     [
       addressOrName,
       args,

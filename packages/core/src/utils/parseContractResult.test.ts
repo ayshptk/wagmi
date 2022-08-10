@@ -31,7 +31,7 @@ describe('parseContractResult', () => {
         stateMutability: 'view',
         type: 'function',
       },
-    ]
+    ] as const
 
     it('should parse the data to an ethers Result if there are no named keys', () => {
       const data = [
@@ -98,7 +98,7 @@ describe('parseContractResult', () => {
         stateMutability: 'view',
         type: 'function',
       },
-    ]
+    ] as const
 
     it('should parse the data to an ethers Result', () => {
       const data = [
@@ -136,7 +136,7 @@ describe('parseContractResult', () => {
         stateMutability: 'view',
         type: 'function',
       },
-    ]
+    ] as const
 
     it('should parse the data to an ethers Result', () => {
       const data = [
@@ -173,7 +173,7 @@ describe('parseContractResult', () => {
         stateMutability: 'view',
         type: 'function',
       },
-    ]
+    ] as const
 
     it('should parse the data to an ethers Result', () => {
       const data = [BigNumber.from(1), BigNumber.from(2), BigNumber.from(3)]
@@ -220,7 +220,7 @@ describe('parseContractResult', () => {
         stateMutability: 'view',
         type: 'function',
       },
-    ]
+    ] as const
 
     it('should parse the data to an ethers Result if there are no named keys', () => {
       const data: [BigNumber, string][] = [
@@ -341,7 +341,7 @@ describe('parseContractResult', () => {
         stateMutability: 'view',
         type: 'function',
       },
-    ]
+    ] as const
 
     it('should parse the data to an ethers Result if there are no named keys', () => {
       const data: [BigNumber, string[], [BigNumber, string][]][] = [
@@ -594,7 +594,7 @@ describe('parseContractResult', () => {
         stateMutability: 'view',
         type: 'function',
       },
-    ]
+    ] as const
 
     it('should parse the data to an ethers Result if there are no named keys', () => {
       const data: [[BigNumber, string][], BigNumber[], BigNumber[]] = [

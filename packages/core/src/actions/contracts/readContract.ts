@@ -7,7 +7,7 @@ import {
 import { CallOverrides, ContractInterface } from 'ethers/lib/ethers'
 
 import { getProvider } from '../providers'
-import { GetContractArgs, getContract } from './getContract'
+import { getContract } from './getContract'
 
 export type ReadContractConfig<
   TAbi extends Abi,
@@ -16,9 +16,11 @@ export type ReadContractConfig<
     ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
   >,
 > = {
-  addressOrName: GetContractArgs['addressOrName']
+  /** Contract address or ENS name */
+  addressOrName: string
   /** Chain id to use for provider */
   chainId?: number
+  /** Contract ABI */
   contractInterface: TAbi
   /** Function to invoke on the contract */
   functionName: TFunctionName

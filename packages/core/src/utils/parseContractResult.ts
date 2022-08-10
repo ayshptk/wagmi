@@ -1,18 +1,21 @@
-import { Abi } from 'abitype'
+import { Abi, ExtractAbiFunctionNames } from 'abitype'
 import { Contract, ContractInterface } from 'ethers/lib/ethers'
 
 function isPlainArray(value: unknown) {
   return Array.isArray(value) && Object.keys(value).length === value.length
 }
 
-export function parseContractResult({
+export function parseContractResult<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi>,
+>({
   contractInterface,
   data,
   functionName,
 }: {
-  contractInterface: Abi
+  contractInterface: TAbi
   data: any
-  functionName: string
+  functionName: TFunctionName
 }) {
   if (data && isPlainArray(data)) {
     const iface = Contract.getInterface(<ContractInterface>contractInterface)

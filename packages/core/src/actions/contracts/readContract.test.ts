@@ -81,7 +81,7 @@ describe('readContract', () => {
 
   describe('types', () => {
     describe('args', () => {
-      it('zero', async () => {
+      it('zero', () => {
         const res = readContract({
           addressOrName: '0x0000000000000000000000000000000000000000',
           contractInterface: [
@@ -98,7 +98,7 @@ describe('readContract', () => {
         expectType<Promise<string>>(res)
       })
 
-      it('one', async () => {
+      it('one', () => {
         const res = readContract({
           addressOrName: '0x0000000000000000000000000000000000000000',
           contractInterface: [
@@ -130,7 +130,7 @@ describe('readContract', () => {
         expectType<Promise<{ bar: string }>>(res)
       })
 
-      it('two or more', async () => {
+      it('two or more', () => {
         const res = readContract({
           addressOrName: '0x0000000000000000000000000000000000000000',
           contractInterface: [
@@ -157,7 +157,7 @@ describe('readContract', () => {
         expectType<Promise<number | bigint>>(res)
       })
 
-      it('wrong arg type', async () => {
+      it('wrong arg type', () => {
         const res = readContract({
           addressOrName: '0x0000000000000000000000000000000000000000',
           contractInterface: [
@@ -183,7 +183,7 @@ describe('readContract', () => {
     })
 
     describe('behavior', () => {
-      it('write function not allowed', async () => {
+      it('write function not allowed', () => {
         const res = readContract({
           addressOrName: '0x0000000000000000000000000000000000000000',
           contractInterface: [
@@ -194,14 +194,14 @@ describe('readContract', () => {
               inputs: [],
               outputs: [{ name: '', type: 'string' }],
             },
-          ],
+          ] as const,
           // @ts-expect-error Trying to use non-read function
           functionName: 'foo',
         })
         expectType<Promise<any>>(res)
       })
 
-      it('mutable abi', async () => {
+      it('mutable abi', () => {
         const res = readContract({
           addressOrName: '0x0000000000000000000000000000000000000000',
           contractInterface: [
