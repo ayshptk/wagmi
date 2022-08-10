@@ -11,7 +11,6 @@ import {
   ExtractAbiFunctionNames,
   ExtractAbiFunctionParameters,
 } from 'abitype'
-import { ContractInterface } from 'ethers/lib/ethers'
 import * as React from 'react'
 import { QueryFunctionContext, hashQueryKey } from 'react-query'
 
@@ -20,32 +19,27 @@ import { useBlockNumber } from '../network-status'
 import { useChainId, useInvalidateOnBlock, useQuery } from '../utils'
 
 type UseContractReadConfig<
-  TAbi,
-  TFunctionName extends TAbi extends Abi
-    ? ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>
-    : string,
-  TArgs extends TAbi extends Abi
-    ? AbiParametersToPrimitiveTypes<
-        ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
-      >
-    : any[],
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TResponse extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'outputs'>
+  >,
 > = ReadContractConfig<TAbi, TFunctionName, TArgs> & {
   /** If set to `true`, the cache will depend on the block number */
   cacheOnBlock?: boolean
   /** Subscribe to changes */
   watch?: boolean
-} & QueryConfig<ReadContractResult, Error>
+} & QueryConfig<ReadContractResult<TAbi, TFunctionName, TResponse>, Error>
 
 function queryKey<
-  TAbi,
-  TFunctionName extends TAbi extends Abi
-    ? ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>
-    : string,
-  TArgs extends TAbi extends Abi
-    ? AbiParametersToPrimitiveTypes<
-        ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
-      >
-    : any[],
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
 >([
   { addressOrName, args, chainId, contractInterface, functionName, overrides },
   { blockNumber },
@@ -65,33 +59,34 @@ function queryKey<
 }
 
 async function queryFn<
-  TAbi extends Abi | any[],
-  TFunctionName extends TAbi extends Abi
-    ? ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>
-    : string,
-  TArgs extends TAbi extends Abi
-    ? AbiParametersToPrimitiveTypes<
-        ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
-      >
-    : any[],
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TResponse extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'outputs'>
+  >,
 >({
   queryKey,
 }: QueryFunctionContext<
   readonly [ReadContractConfig<TAbi, TFunctionName, TArgs>]
 >) {
-  return (await readContract<TAbi, TFunctionName, TArgs>(queryKey[0])) ?? null
+  return (
+    (await readContract<TAbi, TFunctionName, TArgs, TResponse>(queryKey[0])) ??
+    null
+  )
 }
 
 export function useContractRead<
-  TAbi extends Abi | ContractInterface,
-  TFunctionName extends TAbi extends Abi
-    ? ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>
-    : string,
-  TArgs extends TAbi extends Abi
-    ? AbiParametersToPrimitiveTypes<
-        ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
-      >
-    : any[],
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TResponse extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'outputs'>
+  >,
 >({
   addressOrName,
   contractInterface,
@@ -110,7 +105,7 @@ export function useContractRead<
   onError,
   onSettled,
   onSuccess,
-}: UseContractReadConfig<TAbi, TFunctionName, TArgs>) {
+}: UseContractReadConfig<TAbi, TFunctionName, TArgs, TResponse>) {
   const chainId = useChainId({ chainId: chainId_ })
   const { data: blockNumber } = useBlockNumber({
     enabled: watch || cacheOnBlock,

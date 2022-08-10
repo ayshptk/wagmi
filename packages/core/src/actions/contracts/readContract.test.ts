@@ -5,6 +5,7 @@ import {
   setupClient,
   wagmigotchiContractConfig,
 } from '../../../test'
+import { erc721ABI } from '../../constants'
 import { readContract } from './readContract'
 
 describe('readContract', () => {
@@ -14,40 +15,45 @@ describe('readContract', () => {
     })
 
     it('chainId', async () => {
-      expect(
-        await readContract({
-          ...wagmigotchiContractConfig,
-          contractInterface: [
-            {
-              type: 'function',
-              name: 'foo',
-              inputs: [
-                { type: 'address', name: 'merp' },
-                { type: 'bool[2]', name: 'meep' },
-              ],
-              outputs: [],
-              stateMutability: 'view',
-            },
-            {
-              type: 'function',
-              name: 'bar',
-              inputs: [],
-              outputs: [],
-              stateMutability: 'view',
-            },
-            {
-              type: 'function',
-              name: 'boo',
-              inputs: [{ type: 'address', name: 'address' }],
-              outputs: [],
-              stateMutability: 'view',
-            },
-          ] as const,
-          functionName: 'boo',
-          args: '0Cf798816D4b9b9866b5330EEa46a18382f251e',
-          chainId: 1,
-        }),
-      ).toMatchInlineSnapshot(`
+      const res = await readContract({
+        ...wagmigotchiContractConfig,
+        contractInterface: [
+          {
+            type: 'function',
+            name: 'foo',
+            inputs: [
+              { type: 'address', name: 'merp' },
+              { type: 'bool[2]', name: 'meep' },
+            ],
+            outputs: [
+              {
+                type: 'tuple',
+                name: 'merp',
+                components: [{ type: 'string', name: 'name' }],
+              },
+            ],
+            stateMutability: 'view',
+          },
+          {
+            type: 'function',
+            name: 'bar',
+            inputs: [],
+            outputs: [],
+            stateMutability: 'view',
+          },
+          {
+            type: 'function',
+            name: 'boo',
+            inputs: [{ type: 'address', name: 'address' }],
+            outputs: [],
+            stateMutability: 'view',
+          },
+        ] as const,
+        functionName: 'foo',
+        args: ['0x0Cf798816D4b9b9866b5330EEa46a18382f251e', [true, true]],
+        chainId: 1,
+      })
+      expect(res).toMatchInlineSnapshot(`
         {
           "hex": "0x02",
           "type": "BigNumber",

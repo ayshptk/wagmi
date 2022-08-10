@@ -48,7 +48,12 @@ const GetAlive = () => {
         type: 'function',
         name: 'boo',
         inputs: [{ type: 'address', name: 'address' }],
-        outputs: [],
+        outputs: [
+          {
+            type: 'string',
+            name: 'merp',
+          },
+        ],
         stateMutability: 'view',
       },
     ] as const,

@@ -5,7 +5,6 @@ import {
   ExtractAbiFunctionParameters,
 } from 'abitype'
 import { CallOverrides, ContractInterface } from 'ethers/lib/ethers'
-import { Result } from 'ethers/lib/utils'
 
 import { getProvider } from '../providers'
 import { GetContractArgs, getContract } from './getContract'
@@ -25,35 +24,38 @@ export type ReadContractConfig<
   functionName: TFunctionName
   /** Call overrides */
   overrides?: CallOverrides
-} & (TArgs extends any[]
+} & (TArgs['length'] extends 0
   ? {
-      /** Arguments to pass contract method */
-      args?: any
-    }
-  : TArgs['length'] extends 0
-  ? { args?: never }
-  : TArgs['length'] extends 1
-  ? {
-      /** Argument to pass contract method */
-      args: TArgs[0]
+      // Add optional `args` param if not able to infer `TArgs`
+      // e.g. not using const assertion for `contractInterface`
+      args?: [TArgs] extends [never] ? any : never
     }
   : {
       /** Arguments to pass contract method */
-      args: TArgs
+      args: TArgs['length'] extends 1 ? TArgs[0] : TArgs
     })
 
-export type ReadContractResult<Data = Result> = Data
+export type ReadContractResult<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>,
+  TResponse extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'outputs'>
+  >,
+> = TResponse['length'] extends 0
+  ? void
+  : TResponse['length'] extends 1
+  ? TResponse[0]
+  : TResponse
 
 export async function readContract<
-  TAbi extends Abi | [],
-  TFunctionName extends TAbi extends Abi
-    ? ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>
-    : string,
-  TArgs extends TAbi extends Abi
-    ? AbiParametersToPrimitiveTypes<
-        ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
-      >
-    : any,
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TResponse extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'outputs'>
+  >,
 >({
   addressOrName,
   args,
@@ -61,11 +63,9 @@ export async function readContract<
   contractInterface,
   functionName,
   overrides,
-}: ReadContractConfig<
-  TAbi,
-  TFunctionName,
-  TArgs
->): Promise<ReadContractResult> {
+}: ReadContractConfig<TAbi, TFunctionName, TArgs>): Promise<
+  ReadContractResult<TAbi, TFunctionName, TResponse>
+> {
   const provider = getProvider({ chainId })
   const contract = getContract({
     addressOrName,
@@ -78,11 +78,10 @@ export async function readContract<
     ...(overrides ? [overrides] : []),
   ]
 
-  const contractFunction = contract[<string>functionName]
+  const contractFunction = contract[functionName]
   if (!contractFunction)
     console.warn(
       `"${functionName}" is not in the interface for contract "${addressOrName}"`,
     )
-  const response = await contractFunction?.(...params)
-  return response
+  return (await contractFunction?.(...params)) as TResponse
 }
