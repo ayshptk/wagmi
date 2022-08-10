@@ -37,13 +37,16 @@ type UseContractReadConfig<
 function queryKey<
   TAbi extends Abi,
   TFunctionName extends ExtractAbiFunctionNames<TAbi, 'pure' | 'view'>,
-  TArgs extends AbiParametersToPrimitiveTypes<
-    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
-  >,
 >([
   { addressOrName, args, chainId, contractInterface, functionName, overrides },
   { blockNumber },
-]: [ReadContractConfig<TAbi, TFunctionName, TArgs>, { blockNumber?: number }]) {
+]: [
+  // Force `args` to any type so react-query can infer it's existence.
+  // This is fine because type-safety comes from the outer function signature.
+  // If we expose `queryKey` to users, we will want to add `TArgs` in.
+  ReadContractConfig<TAbi, TFunctionName, any | undefined>,
+  { blockNumber?: number },
+]) {
   return [
     {
       entity: 'readContract',
@@ -72,10 +75,7 @@ async function queryFn<
 }: QueryFunctionContext<
   readonly [ReadContractConfig<TAbi, TFunctionName, TArgs>]
 >) {
-  return (
-    (await readContract<TAbi, TFunctionName, TArgs, TResponse>(queryKey[0])) ??
-    null
-  )
+  return await readContract<TAbi, TFunctionName, TArgs, TResponse>(queryKey[0])
 }
 
 export function useContractRead<
@@ -114,7 +114,7 @@ export function useContractRead<
 
   const queryKey_ = React.useMemo(
     () =>
-      queryKey<TAbi, TFunctionName, TArgs>([
+      queryKey<TAbi, TFunctionName>([
         {
           addressOrName,
           args,

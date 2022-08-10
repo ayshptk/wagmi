@@ -28,7 +28,8 @@ export type ReadContractConfig<
   ? {
       // Add optional `args` param if not able to infer `TArgs`
       // e.g. not using const assertion for `contractInterface`
-      args?: [TArgs] extends [never] ? any : never
+      // Otherwise remove from config object
+      args?: [TArgs] extends [never] ? any | undefined : never
     }
   : {
       /** Arguments to pass contract method */
@@ -42,7 +43,9 @@ export type ReadContractResult<
     ExtractAbiFunctionParameters<TAbi, TFunctionName, 'outputs'>
   >,
 > = TResponse['length'] extends 0
-  ? void
+  ? [TResponse] extends [never]
+    ? any
+    : void
   : TResponse['length'] extends 1
   ? TResponse[0]
   : TResponse
@@ -73,15 +76,15 @@ export async function readContract<
     signerOrProvider: provider,
   })
 
-  const params = [
-    ...(Array.isArray(args) ? args : args ? [args] : []),
-    ...(overrides ? [overrides] : []),
-  ]
-
   const contractFunction = contract[functionName]
   if (!contractFunction)
     console.warn(
       `"${functionName}" is not in the interface for contract "${addressOrName}"`,
     )
-  return (await contractFunction?.(...params)) as TResponse
+
+  const params = [
+    ...(Array.isArray(args) ? args : args ? [args] : []),
+    ...(overrides ? [overrides] : []),
+  ]
+  return (await contractFunction?.(...params)) ?? null
 }

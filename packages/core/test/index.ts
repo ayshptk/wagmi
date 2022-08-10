@@ -25,6 +25,7 @@ export {
   wagmigotchiContractConfig,
 } from './constants'
 export {
+  expectType,
   getCrowdfundArgs,
   getTotalSupply,
   getProvider,

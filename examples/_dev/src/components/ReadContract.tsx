@@ -26,40 +26,7 @@ export const ReadContract = () => {
 const GetAlive = () => {
   const { data, isRefetching, isSuccess, refetch } = useContractRead({
     ...wagmigotchiContractConfig,
-    contractInterface: [
-      {
-        type: 'function',
-        name: 'foo',
-        inputs: [
-          { type: 'address', name: 'merp' },
-          { type: 'bool[2]', name: 'meep' },
-        ],
-        outputs: [],
-        stateMutability: 'view',
-      },
-      {
-        type: 'function',
-        name: 'bar',
-        inputs: [],
-        outputs: [],
-        stateMutability: 'view',
-      },
-      {
-        type: 'function',
-        name: 'boo',
-        inputs: [{ type: 'address', name: 'address' }],
-        outputs: [
-          {
-            type: 'string',
-            name: 'merp',
-          },
-        ],
-        stateMutability: 'view',
-      },
-    ] as const,
-    functionName: 'boo',
-    // args: ['0xA0Cf798816D4b9b9866b5330EEa46a18382f251e', [true, true]],
-    args: '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e',
+    functionName: 'getAlive',
   })
 
   return (
@@ -81,7 +48,7 @@ const Love = () => {
   const { data, isFetching, isRefetching, isSuccess } = useContractRead({
     ...wagmigotchiContractConfig,
     functionName: 'love',
-    args: [address],
+    args: address as `0x${string}`,
     enabled: Boolean(address),
   })
 
