@@ -1,3 +1,4 @@
+import { Address } from 'abitype'
 import { providers } from 'ethers'
 import { Contract, Wallet } from 'ethers/lib/ethers'
 
@@ -202,20 +203,20 @@ export function getCrowdfundArgs({
   symbol = `$Crowdfund${crowdfundId}-${getRandomNumber()}`,
   operatorAddress = '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e',
   fundingRecipientAddress = '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e',
-  fundingGoal = '100000000000000000000',
-  operatorPercent = '100',
+  fundingGoal = 100000000000000000000,
+  operatorPercent = 100,
 }: {
-  tributaryConfig?: { tributary: string; feePercentage: number }
+  tributaryConfig?: { tributary: Address; feePercentage: number }
   name?: string
   symbol?: string
-  operatorAddress?: string
-  fundingRecipientAddress?: string
-  fundingGoal?: string
-  operatorPercent?: string
+  operatorAddress?: Address
+  fundingRecipientAddress?: Address
+  fundingGoal?: number | bigint
+  operatorPercent?: number | bigint
 } = {}) {
   crowdfundId += 1
-  // do not change order of keys below
-  const data = {
+  // do not change order of array below
+  return [
     tributaryConfig,
     name,
     symbol,
@@ -223,8 +224,7 @@ export function getCrowdfundArgs({
     fundingRecipientAddress,
     fundingGoal,
     operatorPercent,
-  }
-  return Object.values(data)
+  ] as const
 }
 
 /**

@@ -64,6 +64,10 @@ export function renderHook<TResult, TProps>(
   }
 }
 
+export function doNotExecute(_func: () => void) {
+  return true
+}
+
 export { act, cleanup } from '@testing-library/react'
 export {
   setupClient,

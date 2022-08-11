@@ -5,12 +5,15 @@ import {
   Address,
   ExtractAbiEventNames,
   ExtractAbiEventParameters,
+  ExtractAbiFunctionNames,
+  ExtractAbiFunctionParameters,
 } from 'abitype'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
   act,
   actConnect,
+  doNotExecute,
   expectType,
   renderHook,
   wagmiContractConfig,
@@ -22,26 +25,26 @@ import {
   useWaitForTransaction,
 } from '../transactions/useWaitForTransaction'
 import { UseContractEventConfig, useContractEvent } from './useContractEvent'
-import {
-  UseContractWriteArgs,
-  UseContractWriteConfig,
-  useContractWrite,
-} from './useContractWrite'
+import { UseContractWriteConfig, useContractWrite } from './useContractWrite'
 
 const uniContractAddress = '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984'
 
 function useContractEventWithWrite<
   TAbi extends Abi,
   TEventName extends ExtractAbiEventNames<TAbi>,
-  TArgs extends AbiParametersToPrimitiveTypes<
+  TEventArgs extends AbiParametersToPrimitiveTypes<
     ExtractAbiEventParameters<TAbi, TEventName>
+  >,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi>,
+  TFunctionArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
   >,
 >(config: {
   contractEvent: {
-    config: UseContractEventConfig<TAbi, TEventName, TArgs>
+    config: UseContractEventConfig<TAbi, TEventName, TEventArgs>
   }
   contractWrite: {
-    config: UseContractWriteArgs & UseContractWriteConfig
+    config: UseContractWriteConfig<TAbi, TFunctionName, TFunctionArgs>
   }
   waitForTransaction?: UseWaitForTransactionArgs & UseWaitForTransactionConfig
 }) {
@@ -113,7 +116,7 @@ describe('useContractEvent', () => {
   describe('types', () => {
     describe('args', () => {
       it('one', () => {
-        renderHook(() =>
+        doNotExecute(() =>
           useContractEvent({
             addressOrName: uniContractAddress,
             contractInterface: [
@@ -140,7 +143,7 @@ describe('useContractEvent', () => {
       })
 
       it('two or more', () => {
-        renderHook(() =>
+        doNotExecute(() =>
           useContractEvent({
             addressOrName: uniContractAddress,
             contractInterface: erc20ABI,
@@ -158,7 +161,7 @@ describe('useContractEvent', () => {
 
     describe('behavior', () => {
       it('invalid event name', () => {
-        renderHook(() =>
+        doNotExecute(() =>
           useContractEvent({
             addressOrName: uniContractAddress,
             contractInterface: [
@@ -180,7 +183,7 @@ describe('useContractEvent', () => {
       })
 
       it('mutable abi', () => {
-        renderHook(() =>
+        doNotExecute(() =>
           useContractEvent({
             addressOrName: uniContractAddress,
             contractInterface: [

@@ -1,13 +1,15 @@
+import * as React from 'react'
 import { useContractWrite, usePrepareContractWrite } from 'wagmi'
 
-import anvABI from './anv-abi.json'
+import { anvAbi } from './anv-abi'
 
 export const WriteContractPrepared = () => {
+  const [args] = React.useState<number | string>(56)
   const { config } = usePrepareContractWrite({
     addressOrName: '0xe614fbd03d58a60fd9418d4ab5eb5ec6c001415f',
-    contractInterface: anvABI,
+    contractInterface: anvAbi,
     functionName: 'claim',
-    args: parseInt('56'),
+    args: typeof args === 'string' ? parseInt(args) : args,
   })
   const { write, data, error, isLoading, isError, isSuccess } =
     useContractWrite(config)
@@ -15,15 +17,7 @@ export const WriteContractPrepared = () => {
   return (
     <div>
       <div>Mint an Adjective Noun Verb:</div>
-      <button
-        disabled={isLoading || !write}
-        onClick={() =>
-          write?.({
-            recklesslySetUnpreparedArgs: [],
-            recklesslySetUnpreparedOverrides: {},
-          })
-        }
-      >
+      <button disabled={isLoading || !write} onClick={() => write?.()}>
         Mint
       </button>
       {isError && <div>{error?.message}</div>}

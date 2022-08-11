@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   actConnect,
+  doNotExecute,
   mlootContractConfig,
   renderHook,
   wagmiContractConfig,
@@ -244,7 +245,7 @@ describe('usePrepareContractWrite', () => {
   describe('types', () => {
     describe('args', () => {
       it('zero', () => {
-        renderHook(() =>
+        doNotExecute(() =>
           usePrepareContractWrite({
             addressOrName: '0x0000000000000000000000000000000000000000',
             contractInterface: [
@@ -262,7 +263,7 @@ describe('usePrepareContractWrite', () => {
       })
 
       it('one', () => {
-        renderHook(() =>
+        doNotExecute(() =>
           usePrepareContractWrite({
             addressOrName: '0x0000000000000000000000000000000000000000',
             contractInterface: [
@@ -295,7 +296,7 @@ describe('usePrepareContractWrite', () => {
       })
 
       it('two or more', () => {
-        renderHook(() =>
+        doNotExecute(() =>
           usePrepareContractWrite({
             addressOrName: '0x0000000000000000000000000000000000000000',
             contractInterface: [
@@ -323,7 +324,7 @@ describe('usePrepareContractWrite', () => {
       })
 
       it('wrong arg type', () => {
-        renderHook(() =>
+        doNotExecute(() =>
           usePrepareContractWrite({
             addressOrName: '0x0000000000000000000000000000000000000000',
             contractInterface: [
@@ -350,7 +351,7 @@ describe('usePrepareContractWrite', () => {
 
     describe('behavior', () => {
       it('write function not allowed', () => {
-        renderHook(() =>
+        doNotExecute(() =>
           usePrepareContractWrite({
             addressOrName: '0x0000000000000000000000000000000000000000',
             contractInterface: [
@@ -369,7 +370,7 @@ describe('usePrepareContractWrite', () => {
       })
 
       it('mutable abi', () => {
-        renderHook(() =>
+        doNotExecute(() =>
           usePrepareContractWrite({
             addressOrName: '0x0000000000000000000000000000000000000000',
             contractInterface: [

@@ -21,7 +21,7 @@ describe('writeContract', () => {
       ...wagmiContractConfig,
       functionName: 'mint',
     })
-    const { hash } = await writeContract({ ...config })
+    const { hash } = await writeContract(config)
 
     expect(hash).toBeDefined()
   })

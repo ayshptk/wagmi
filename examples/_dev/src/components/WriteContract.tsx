@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useContractWrite } from 'wagmi'
 
-import anvABI from './anv-abi.json'
+import { anvAbi } from './anv-abi'
 
 export const WriteContract = () => {
   const { write, data, error, isLoading, isError, isSuccess } =
     useContractWrite({
       mode: 'recklesslyUnprepared',
       addressOrName: '0xe614fbd03d58a60fd9418d4ab5eb5ec6c001415f',
-      contractInterface: anvABI,
+      contractInterface: anvAbi,
       functionName: 'claim',
       chainId: 1,
     })

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   act,
+  doNotExecute,
   expectType,
   mlootContractConfig,
   renderHook,
@@ -175,8 +176,8 @@ describe('useContractRead', () => {
   describe('types', () => {
     describe('args', () => {
       it('zero', () => {
-        const { result } = renderHook(() =>
-          useContractRead({
+        doNotExecute(() => {
+          const { data } = useContractRead({
             addressOrName: '0x0000000000000000000000000000000000000000',
             contractInterface: [
               {
@@ -188,105 +189,105 @@ describe('useContractRead', () => {
               },
             ] as const,
             functionName: 'foo',
-          }),
-        )
-        expectType<string | undefined>(result.current.data)
-      })
+          })
+          expectType<string | undefined>(data)
+        })
 
-      it('one', () => {
-        const { result } = renderHook(() =>
-          useContractRead({
-            addressOrName: '0x0000000000000000000000000000000000000000',
-            contractInterface: [
-              {
-                type: 'function',
-                name: 'foo',
-                stateMutability: 'view',
-                inputs: [
-                  {
-                    name: '',
-                    type: 'tuple',
-                    components: [{ name: 'bar', type: 'string' }],
-                  },
-                ],
-                outputs: [
-                  {
-                    name: '',
-                    type: 'tuple',
-                    components: [{ name: 'bar', type: 'string' }],
-                  },
-                ],
+        it('one', () => {
+          doNotExecute(() => {
+            const { data } = useContractRead({
+              addressOrName: '0x0000000000000000000000000000000000000000',
+              contractInterface: [
+                {
+                  type: 'function',
+                  name: 'foo',
+                  stateMutability: 'view',
+                  inputs: [
+                    {
+                      name: '',
+                      type: 'tuple',
+                      components: [{ name: 'bar', type: 'string' }],
+                    },
+                  ],
+                  outputs: [
+                    {
+                      name: '',
+                      type: 'tuple',
+                      components: [{ name: 'bar', type: 'string' }],
+                    },
+                  ],
+                },
+              ] as const,
+              functionName: 'foo',
+              args: {
+                bar: 'hello',
               },
-            ] as const,
-            functionName: 'foo',
-            args: {
-              bar: 'hello',
-            },
-          }),
-        )
-        expectType<{ bar: string } | undefined>(result.current.data)
-      })
+            })
+            expectType<{ bar: string } | undefined>(data)
+          })
+        })
 
-      it('two or more', () => {
-        const { result } = renderHook(() =>
-          useContractRead({
-            addressOrName: '0x0000000000000000000000000000000000000000',
-            contractInterface: [
-              {
-                type: 'function',
-                name: 'foo',
-                stateMutability: 'view',
-                inputs: [
-                  {
-                    name: 'address',
-                    type: 'address',
-                  },
-                  {
-                    name: 'tokenIds',
-                    type: 'int[3]',
-                  },
-                ],
-                outputs: [{ name: '', type: 'int' }],
-              },
-            ] as const,
-            functionName: 'foo',
-            args: ['0xA0Cf798816D4b9b9866b5330EEa46a18382f251e', [1, 2, 3]],
-          }),
-        )
-        expectType<number | bigint | undefined>(result.current.data)
-      })
+        it('two or more', () => {
+          doNotExecute(() => {
+            const { data } = useContractRead({
+              addressOrName: '0x0000000000000000000000000000000000000000',
+              contractInterface: [
+                {
+                  type: 'function',
+                  name: 'foo',
+                  stateMutability: 'view',
+                  inputs: [
+                    {
+                      name: 'address',
+                      type: 'address',
+                    },
+                    {
+                      name: 'tokenIds',
+                      type: 'int[3]',
+                    },
+                  ],
+                  outputs: [{ name: '', type: 'int' }],
+                },
+              ] as const,
+              functionName: 'foo',
+              args: ['0xA0Cf798816D4b9b9866b5330EEa46a18382f251e', [1, 2, 3]],
+            })
+            expectType<number | bigint | undefined>(data)
+          })
+        })
 
-      it('wrong arg type', () => {
-        const { result } = renderHook(() =>
-          useContractRead({
-            addressOrName: '0x0000000000000000000000000000000000000000',
-            contractInterface: [
-              {
-                type: 'function',
-                name: 'foo',
-                stateMutability: 'view',
-                inputs: [
-                  {
-                    name: 'owner',
-                    type: 'address',
-                  },
-                ],
-                outputs: [{ name: '', type: 'string' }],
-              },
-            ] as const,
-            functionName: 'foo',
-            // @ts-expect-error arg not in address format
-            args: 'notanaddress',
-          }),
-        )
-        expectType<string | undefined>(result.current.data)
+        it('wrong arg type', () => {
+          doNotExecute(() => {
+            const { data } = useContractRead({
+              addressOrName: '0x0000000000000000000000000000000000000000',
+              contractInterface: [
+                {
+                  type: 'function',
+                  name: 'foo',
+                  stateMutability: 'view',
+                  inputs: [
+                    {
+                      name: 'owner',
+                      type: 'address',
+                    },
+                  ],
+                  outputs: [{ name: '', type: 'string' }],
+                },
+              ] as const,
+              functionName: 'foo',
+              // @ts-expect-error arg not in address format
+              args: 'notanaddress',
+            })
+            expectType<string | undefined>(data)
+          })
+        })
       })
     })
 
     describe('behavior', () => {
       it('write function not allowed', () => {
-        const { result } = renderHook(() =>
-          useContractRead({
+        doNotExecute(() => {
+          const { data } = useContractRead({
             addressOrName: '0x0000000000000000000000000000000000000000',
             contractInterface: [
               {
@@ -299,14 +300,14 @@ describe('useContractRead', () => {
             ],
             // @ts-expect-error Trying to use non-read function
             functionName: 'foo',
-          }),
-        )
-        expectType<any>(result.current.data)
+          })
+          expectType<any>(data)
+        })
       })
 
       it('mutable abi', () => {
-        const { result } = renderHook(() =>
-          useContractRead({
+        doNotExecute(() => {
+          const { data } = useContractRead({
             addressOrName: '0x0000000000000000000000000000000000000000',
             contractInterface: [
               {
@@ -318,9 +319,9 @@ describe('useContractRead', () => {
               },
             ],
             functionName: 'foo',
-          }),
-        )
-        expectType<any>(result.current.data)
+          })
+          expectType<any>(data)
+        })
       })
     })
   })

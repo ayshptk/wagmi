@@ -31,11 +31,28 @@ export type WriteContractPreparedArgs = {
     to: Address
     gasLimit: NonNullable<PopulatedTransaction['gasLimit']>
   }
+  args?: never
 }
-export type WriteContractUnpreparedArgs = {
+export type WriteContractUnpreparedArgs<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+> = {
   mode: 'recklesslyUnprepared'
-  request?: undefined
-}
+  request?: never
+} & (TArgs['length'] extends 0
+  ? {
+      // Add optional `args` param if not able to infer `TArgs`
+      // e.g. not using const assertion for `contractInterface`
+      // Otherwise remove from config object
+      args?: [TArgs] extends [never] ? any | undefined : never
+    }
+  : {
+      /** Arguments to pass contract method */
+      args: TArgs['length'] extends 1 ? TArgs[0] : TArgs
+    })
 
 export type WriteContractArgs<
   TAbi extends Abi,
@@ -53,18 +70,10 @@ export type WriteContractArgs<
   /** Method to call on contract */
   functionName: TFunctionName
   overrides?: CallOverrides
-} & (WriteContractUnpreparedArgs | WriteContractPreparedArgs) &
-  (TArgs['length'] extends 0
-    ? {
-        // Add optional `args` param if not able to infer `TArgs`
-        // e.g. not using const assertion for `contractInterface`
-        // Otherwise remove from config object
-        args?: [TArgs] extends [never] ? any | undefined : never
-      }
-    : {
-        /** Arguments to pass contract method */
-        args: TArgs['length'] extends 1 ? TArgs[0] : TArgs
-      })
+} & (
+  | WriteContractUnpreparedArgs<TAbi, TFunctionName, TArgs>
+  | WriteContractPreparedArgs
+)
 
 export type WriteContractResult = SendTransactionResult
 

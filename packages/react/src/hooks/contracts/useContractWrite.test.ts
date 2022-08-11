@@ -1,8 +1,16 @@
+import { Signer } from '@wagmi/core'
+import {
+  Abi,
+  AbiParametersToPrimitiveTypes,
+  ExtractAbiFunctionNames,
+  ExtractAbiFunctionParameters,
+} from 'abitype'
 import { describe, expect, it } from 'vitest'
 
 import {
   act,
   actConnect,
+  doNotExecute,
   getCrowdfundArgs,
   getSigners,
   getTotalSupply,
@@ -12,31 +20,37 @@ import {
   wagmiContractConfig,
 } from '../../../test'
 import { useConnect } from '../accounts'
+import { UseContractWriteConfig, useContractWrite } from './useContractWrite'
 import {
-  UseContractWriteArgs,
-  UseContractWriteConfig,
-  useContractWrite,
-} from './useContractWrite'
-import {
-  UsePrepareContractWriteArgs,
   UsePrepareContractWriteConfig,
   usePrepareContractWrite,
 } from './usePrepareContractWrite'
 
-function useContractWriteWithConnect(
-  config: UseContractWriteArgs & UseContractWriteConfig,
-) {
+function useContractWriteWithConnect<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+>(config: UseContractWriteConfig<TAbi, TFunctionName, TArgs>) {
   return {
     connect: useConnect(),
     contractWrite: useContractWrite(config),
   }
 }
 
-function usePrepareContractWritedWithConnect(
-  config: UsePrepareContractWriteArgs &
-    UsePrepareContractWriteConfig & { chainId?: number },
-) {
-  const prepareContractWrite = usePrepareContractWrite(config)
+function usePrepareContractWriteWithConnect<
+  TAbi extends Abi,
+  TFunctionName extends ExtractAbiFunctionNames<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
+  >,
+  TSigner extends Signer = Signer,
+>(config: {
+  chainId?: number
+  prepare: UsePrepareContractWriteConfig<TAbi, TFunctionName, TArgs, TSigner>
+}) {
+  const prepareContractWrite = usePrepareContractWrite(config.prepare)
   return {
     connect: useConnect(),
     prepareContractWrite,
@@ -107,10 +121,12 @@ describe('useContractWrite', () => {
     describe('chainId', () => {
       it('unable to switch', async () => {
         const utils = renderHook(() =>
-          usePrepareContractWritedWithConnect({
-            ...wagmiContractConfig,
+          usePrepareContractWriteWithConnect({
+            prepare: {
+              ...wagmiContractConfig,
+              functionName: 'mint',
+            },
             chainId: 69,
-            functionName: 'mint',
           }),
         )
 
@@ -140,9 +156,11 @@ describe('useContractWrite', () => {
     describe('write', () => {
       it('prepared', async () => {
         const utils = renderHook(() =>
-          usePrepareContractWritedWithConnect({
-            ...wagmiContractConfig,
-            functionName: 'mint',
+          usePrepareContractWriteWithConnect({
+            prepare: {
+              ...wagmiContractConfig,
+              functionName: 'mint',
+            },
           }),
         )
 
@@ -183,10 +201,12 @@ describe('useContractWrite', () => {
       it('prepared with deferred args', async () => {
         const data = getCrowdfundArgs()
         const utils = renderHook(() =>
-          usePrepareContractWritedWithConnect({
-            ...mirrorCrowdfundContractConfig,
-            functionName: 'createCrowdfund',
-            args: data,
+          usePrepareContractWriteWithConnect({
+            prepare: {
+              ...mirrorCrowdfundContractConfig,
+              functionName: 'createCrowdfund',
+              args: data,
+            },
           }),
         )
         const { result, waitFor } = utils
@@ -314,9 +334,11 @@ describe('useContractWrite', () => {
     describe('writeAsync', () => {
       it('prepared', async () => {
         const utils = renderHook(() =>
-          usePrepareContractWritedWithConnect({
-            ...wagmiContractConfig,
-            functionName: 'mint',
+          usePrepareContractWriteWithConnect({
+            prepare: {
+              ...wagmiContractConfig,
+              functionName: 'mint',
+            },
           }),
         )
 
@@ -358,10 +380,12 @@ describe('useContractWrite', () => {
       it('prepared with deferred args', async () => {
         const data = getCrowdfundArgs()
         const utils = renderHook(() =>
-          usePrepareContractWritedWithConnect({
-            ...mirrorCrowdfundContractConfig,
-            functionName: 'createCrowdfund',
-            args: data,
+          usePrepareContractWriteWithConnect({
+            prepare: {
+              ...mirrorCrowdfundContractConfig,
+              functionName: 'createCrowdfund',
+              args: data,
+            },
           }),
         )
         const { result, waitFor } = utils
@@ -454,7 +478,7 @@ describe('useContractWrite', () => {
             mode: 'recklesslyUnprepared',
             ...mlootContractConfig,
             functionName: 'claim',
-            args: [1],
+            args: 1,
           }),
         )
 
@@ -480,12 +504,14 @@ describe('useContractWrite', () => {
   describe('behavior', () => {
     it('multiple writes', async () => {
       let args: any[] | any = []
-      let functionName = 'mint'
+      let functionName: 'mint' | 'transferFrom' = 'mint'
       const utils = renderHook(() =>
-        usePrepareContractWritedWithConnect({
-          ...wagmiContractConfig,
-          functionName,
-          args,
+        usePrepareContractWriteWithConnect({
+          prepare: {
+            ...wagmiContractConfig,
+            functionName,
+            args,
+          },
         }),
       )
       const { result, rerender, waitFor } = utils
@@ -519,6 +545,124 @@ describe('useContractWrite', () => {
       )
 
       expect(result.current.contractWrite.data?.hash).toBeDefined()
+    })
+  })
+
+  describe('types', () => {
+    describe('args', () => {
+      it('zero', () => {
+        doNotExecute(() =>
+          useContractWrite({
+            mode: 'recklesslyUnprepared',
+            ...wagmiContractConfig,
+            functionName: 'mint',
+          }),
+        )
+      })
+
+      it('one', () => {
+        doNotExecute(() =>
+          useContractWrite({
+            mode: 'recklesslyUnprepared',
+            addressOrName: '0x0000000000000000000000000000000000000000',
+            contractInterface: [
+              {
+                type: 'function',
+                name: 'foo',
+                stateMutability: 'payable',
+                inputs: [
+                  {
+                    name: '',
+                    type: 'tuple',
+                    components: [{ name: 'bar', type: 'string' }],
+                  },
+                ],
+                outputs: [
+                  {
+                    name: '',
+                    type: 'tuple',
+                    components: [{ name: 'bar', type: 'string' }],
+                  },
+                ],
+              },
+            ] as const,
+            functionName: 'foo',
+            args: {
+              bar: 'hello',
+            },
+          }),
+        )
+      })
+
+      it('two or more', () => {
+        doNotExecute(() =>
+          useContractWrite({
+            mode: 'recklesslyUnprepared',
+            addressOrName: '0x0000000000000000000000000000000000000000',
+            contractInterface: [
+              {
+                type: 'function',
+                name: 'foo',
+                stateMutability: 'payable',
+                inputs: [
+                  {
+                    name: 'address',
+                    type: 'address',
+                  },
+                  {
+                    name: 'tokenIds',
+                    type: 'int[3]',
+                  },
+                ],
+                outputs: [{ name: '', type: 'int' }],
+              },
+            ] as const,
+            functionName: 'foo',
+            args: ['0xA0Cf798816D4b9b9866b5330EEa46a18382f251e', [1, 2, 3]],
+          }),
+        )
+      })
+    })
+
+    describe('behavior', () => {
+      it('write function not allowed', () => {
+        doNotExecute(() =>
+          useContractWrite({
+            mode: 'recklesslyUnprepared',
+            addressOrName: '0x0000000000000000000000000000000000000000',
+            contractInterface: [
+              {
+                type: 'function',
+                name: 'foo',
+                stateMutability: 'view',
+                inputs: [],
+                outputs: [{ name: '', type: 'string' }],
+              },
+            ],
+            // @ts-expect-error Trying to use non-read function
+            functionName: 'foo',
+          }),
+        )
+      })
+
+      it('mutable abi', () => {
+        doNotExecute(() =>
+          useContractWrite({
+            mode: 'recklesslyUnprepared',
+            addressOrName: '0x0000000000000000000000000000000000000000',
+            contractInterface: [
+              {
+                type: 'function',
+                name: 'foo',
+                stateMutability: 'payable',
+                inputs: [],
+                outputs: [{ name: '', type: 'string' }],
+              },
+            ],
+            functionName: 'foo',
+          }),
+        )
+      })
     })
   })
 })

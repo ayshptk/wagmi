@@ -55,13 +55,15 @@ export type PrepareWriteContractResult<
     ExtractAbiFunctionParameters<TAbi, TFunctionName, 'inputs'>
   >,
   TSigner extends Signer = Signer,
-> = PrepareWriteContractConfig<TAbi, TFunctionName, TArgs, TSigner> & {
-  chainId?: number
+> = Omit<
+  PrepareWriteContractConfig<TAbi, TFunctionName, TArgs, TSigner>,
+  'args'
+> & {
+  mode: 'prepared'
   request: PopulatedTransaction & {
     to: Address
     gasLimit: NonNullable<PopulatedTransaction['gasLimit']>
   }
-  mode: 'prepared'
 }
 
 /**
@@ -129,15 +131,14 @@ export async function prepareWriteContract<
 
   return {
     addressOrName,
-    args,
-    ...(chainId ? { chainId } : {}),
+    chainId,
     contractInterface,
     functionName,
+    mode: 'prepared',
     overrides,
     request: {
       ...unsignedTransaction,
       gasLimit,
     },
-    mode: 'prepared',
   } as PrepareWriteContractResult<TAbi, TFunctionName, TArgs, TSigner>
 }
