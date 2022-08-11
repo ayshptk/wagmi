@@ -61,6 +61,7 @@ describe('writeContract', () => {
         writeContract({
           ...wagmiContractConfig,
           mode: 'recklesslyUnprepared',
+          // @ts-expect-error contract function not in ABI
           functionName: 'claim',
         }),
       ).rejects.toThrowError()
@@ -71,6 +72,7 @@ describe('writeContract', () => {
         writeContract({
           ...wagmiContractConfig,
           mode: 'recklesslyUnprepared',
+          // @ts-expect-error contract function not in ABI
           functionName: 'claim',
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Connector not found"`)
@@ -82,6 +84,7 @@ describe('writeContract', () => {
         writeContract({
           ...wagmiContractConfig,
           mode: 'recklesslyUnprepared',
+          // @ts-expect-error contract function not in ABI
           functionName: 'wagmi',
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
@@ -89,6 +92,147 @@ describe('writeContract', () => {
 
               Etherscan: https://etherscan.io/address/0xaf0326d92b97df1221759476b072abfd8084f9be#readContract"
             `)
+    })
+  })
+
+  describe('types', () => {
+    describe('args', () => {
+      it('zero', () => {
+        writeContract({
+          mode: 'recklesslyUnprepared',
+          addressOrName: '0x0000000000000000000000000000000000000000',
+          contractInterface: [
+            {
+              type: 'function',
+              name: 'foo',
+              stateMutability: 'payable',
+              inputs: [],
+              outputs: [{ name: '', type: 'string' }],
+            },
+          ] as const,
+          functionName: 'foo',
+        })
+      })
+
+      it('one', () => {
+        writeContract({
+          mode: 'recklesslyUnprepared',
+          addressOrName: '0x0000000000000000000000000000000000000000',
+          contractInterface: [
+            {
+              type: 'function',
+              name: 'foo',
+              stateMutability: 'payable',
+              inputs: [
+                {
+                  name: '',
+                  type: 'tuple',
+                  components: [{ name: 'bar', type: 'string' }],
+                },
+              ],
+              outputs: [
+                {
+                  name: '',
+                  type: 'tuple',
+                  components: [{ name: 'bar', type: 'string' }],
+                },
+              ],
+            },
+          ] as const,
+          functionName: 'foo',
+          args: {
+            bar: 'hello',
+          },
+        })
+      })
+
+      it('two or more', () => {
+        writeContract({
+          mode: 'recklesslyUnprepared',
+          addressOrName: '0x0000000000000000000000000000000000000000',
+          contractInterface: [
+            {
+              type: 'function',
+              name: 'foo',
+              stateMutability: 'payable',
+              inputs: [
+                {
+                  name: 'address',
+                  type: 'address',
+                },
+                {
+                  name: 'tokenIds',
+                  type: 'int[3]',
+                },
+              ],
+              outputs: [{ name: '', type: 'int' }],
+            },
+          ] as const,
+          functionName: 'foo',
+          args: ['0xA0Cf798816D4b9b9866b5330EEa46a18382f251e', [1, 2, 3]],
+        })
+      })
+
+      it('wrong arg type', () => {
+        writeContract({
+          mode: 'recklesslyUnprepared',
+          addressOrName: '0x0000000000000000000000000000000000000000',
+          contractInterface: [
+            {
+              type: 'function',
+              name: 'foo',
+              stateMutability: 'payable',
+              inputs: [
+                {
+                  name: 'owner',
+                  type: 'address',
+                },
+              ],
+              outputs: [{ name: '', type: 'string' }],
+            },
+          ] as const,
+          functionName: 'foo',
+          // @ts-expect-error arg not in address format
+          args: 'notanaddress',
+        })
+      })
+    })
+
+    describe('behavior', () => {
+      it('write function not allowed', () => {
+        writeContract({
+          mode: 'recklesslyUnprepared',
+          addressOrName: '0x0000000000000000000000000000000000000000',
+          contractInterface: [
+            {
+              type: 'function',
+              name: 'foo',
+              stateMutability: 'view',
+              inputs: [],
+              outputs: [{ name: '', type: 'string' }],
+            },
+          ] as const,
+          // @ts-expect-error Trying to use non-write function
+          functionName: 'foo',
+        })
+      })
+
+      it('mutable abi', () => {
+        writeContract({
+          mode: 'recklesslyUnprepared',
+          addressOrName: '0x0000000000000000000000000000000000000000',
+          contractInterface: [
+            {
+              type: 'function',
+              name: 'foo',
+              stateMutability: 'payable',
+              inputs: [],
+              outputs: [{ name: '', type: 'string' }],
+            },
+          ],
+          functionName: 'foo',
+        })
+      })
     })
   })
 })

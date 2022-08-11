@@ -1,44 +1,69 @@
-import { ethers } from 'ethers'
+import {
+  Abi,
+  AbiParametersToPrimitiveTypes,
+  ExtractAbiEventNames,
+  ExtractAbiEventParameters,
+} from 'abitype'
+import { Contract, ContractInterface, ethers } from 'ethers'
 import * as React from 'react'
 
 import { useProvider, useWebSocketProvider } from '../providers'
-import { UseContractConfig, useContract } from './useContract'
+import { useContract } from './useContract'
 
 export type UseContractEventConfig<
-  Contract extends ethers.Contract = ethers.Contract,
-> = UseContractConfig & {
-  /** Event name to listen to */
-  eventName: Parameters<Contract['on']>[0]
-  /** Callback function when event is called */
-  listener: Parameters<Contract['on']>[1]
+  TAbi extends Abi,
+  TEventName extends ExtractAbiEventNames<TAbi>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiEventParameters<TAbi, TEventName>
+  >,
+> = {
+  /** Contract address or ENS name */
+  addressOrName: string
   /** Chain id to use for provider */
   chainId?: number
+  /** Contract ABI */
+  contractInterface: TAbi
+  /** Event name to listen to */
+  eventName: TEventName
+  /** Callback function when event is called */
+  listener: (
+    ...args: [TArgs] extends [never]
+      ? any[]
+      : TArgs extends readonly any[]
+      ? TArgs
+      : never
+  ) => void
   /** Receive only a single event */
   once?: boolean
 }
 
-export const useContractEvent = <Contract extends ethers.Contract>({
+export const useContractEvent = <
+  TAbi extends Abi,
+  TEventName extends ExtractAbiEventNames<TAbi>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiEventParameters<TAbi, TEventName>
+  >,
+>({
   addressOrName,
   chainId,
   contractInterface,
   listener,
   eventName,
-  signerOrProvider,
   once,
-}: UseContractEventConfig<Contract>) => {
+}: UseContractEventConfig<TAbi, TEventName, TArgs>) => {
   const provider = useProvider({ chainId })
   const webSocketProvider = useWebSocketProvider({ chainId })
   const contract = useContract<Contract>({
     addressOrName,
-    contractInterface,
-    signerOrProvider: webSocketProvider ?? provider ?? signerOrProvider,
+    contractInterface: <ContractInterface>(<unknown>contractInterface),
+    signerOrProvider: webSocketProvider ?? provider,
   })
   const listenerRef = React.useRef(listener)
   listenerRef.current = listener
 
   React.useEffect(() => {
-    const handler = (...event: Array<Parameters<Contract['on']>[1]>) =>
-      listenerRef.current(event)
+    type Listener = (...args: any[]) => void
+    const handler = <Listener>(<unknown>listenerRef.current)
 
     const contract_ = <ethers.Contract>(<unknown>contract)
     if (once) contract_.once(eventName, handler)

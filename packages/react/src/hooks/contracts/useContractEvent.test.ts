@@ -1,7 +1,20 @@
 import { erc20ABI } from '@wagmi/core'
+import {
+  Abi,
+  AbiParametersToPrimitiveTypes,
+  Address,
+  ExtractAbiEventNames,
+  ExtractAbiEventParameters,
+} from 'abitype'
 import { describe, expect, it, vi } from 'vitest'
 
-import { act, actConnect, renderHook, wagmiContractConfig } from '../../../test'
+import {
+  act,
+  actConnect,
+  expectType,
+  renderHook,
+  wagmiContractConfig,
+} from '../../../test'
 import { useConnect } from '../accounts'
 import {
   UseWaitForTransactionArgs,
@@ -17,9 +30,15 @@ import {
 
 const uniContractAddress = '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984'
 
-function useContractEventWithWrite(config: {
+function useContractEventWithWrite<
+  TAbi extends Abi,
+  TEventName extends ExtractAbiEventNames<TAbi>,
+  TArgs extends AbiParametersToPrimitiveTypes<
+    ExtractAbiEventParameters<TAbi, TEventName>
+  >,
+>(config: {
   contractEvent: {
-    config: UseContractEventConfig
+    config: UseContractEventConfig<TAbi, TEventName, TArgs>
   }
   contractWrite: {
     config: UseContractWriteArgs & UseContractWriteConfig
@@ -87,6 +106,98 @@ describe('useContractEvent', () => {
         )
 
         expect(listener).toHaveBeenCalled()
+      })
+    })
+  })
+
+  describe('types', () => {
+    describe('args', () => {
+      it('one', () => {
+        renderHook(() =>
+          useContractEvent({
+            addressOrName: uniContractAddress,
+            contractInterface: [
+              {
+                type: 'event',
+                name: 'Foo',
+                stateMutability: 'view',
+                inputs: [
+                  {
+                    name: '',
+                    type: 'tuple',
+                    components: [{ name: 'bar', type: 'address' }],
+                  },
+                ],
+              },
+            ] as const,
+            eventName: 'Foo',
+            listener(from) {
+              expectType<{ bar: Address }>(from)
+            },
+            once: true,
+          }),
+        )
+      })
+
+      it('two or more', () => {
+        renderHook(() =>
+          useContractEvent({
+            addressOrName: uniContractAddress,
+            contractInterface: erc20ABI,
+            eventName: 'Transfer',
+            listener(from, to, tokenId) {
+              expectType<string>(from)
+              expectType<string>(to)
+              expectType<number | bigint>(tokenId)
+            },
+            once: true,
+          }),
+        )
+      })
+    })
+
+    describe('behavior', () => {
+      it('invalid event name', () => {
+        renderHook(() =>
+          useContractEvent({
+            addressOrName: uniContractAddress,
+            contractInterface: [
+              {
+                type: 'event',
+                name: 'Foo',
+                stateMutability: 'view',
+                inputs: [{ name: '', type: 'string' }],
+              },
+            ] as const,
+            // @ts-expect-error Invalid event name
+            eventName: 'foo',
+            listener(from) {
+              expectType<string>(from)
+            },
+            once: true,
+          }),
+        )
+      })
+
+      it('mutable abi', () => {
+        renderHook(() =>
+          useContractEvent({
+            addressOrName: uniContractAddress,
+            contractInterface: [
+              {
+                type: 'event',
+                name: 'Foo',
+                stateMutability: 'view',
+                inputs: [{ name: '', type: 'string' }],
+              },
+            ],
+            eventName: 'foo',
+            listener(from) {
+              expectType<string>(from)
+            },
+            once: true,
+          }),
+        )
       })
     })
   })
